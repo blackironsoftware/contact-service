@@ -6,6 +6,7 @@ Sample application to demonstrate building a small application using [AWS CDK](h
   * Create (src/create.ts) function serves as a Restful API and creates the contact record.
   * Slack (src/slack.ts) function is triggered via DynamoDB event stream and posts a message to Slack channel of your choice using a webhook.
 * API Gateway serves as the entry point to create Lambda function.
+* [Diagram](./contact-service-diagram.png)
 
 ## Requirements
 * Node/NPM

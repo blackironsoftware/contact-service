@@ -4,6 +4,8 @@ import lambda = require('@aws-cdk/aws-lambda');
 import apigateway = require('@aws-cdk/aws-apigateway');
 import { DynamoEventSource } from '@aws-cdk/aws-lambda-event-sources';
 import { environment } from '../environments/environment';
+import certificatemanager = require('@aws-cdk/aws-certificatemanager');
+import route53 = require('@aws-cdk/aws-route53');
 
 export class ContactServiceStack extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
@@ -32,14 +34,21 @@ export class ContactServiceStack extends cdk.Stack {
     contactTable.grantReadWriteData(createContact);
 
     const api = new apigateway.RestApi(this, 'contactApi', {
-      restApiName: 'Contact Service'
+      restApiName: environment.restAPIName
     });
 
-    const contacts = api.root.addResource('contacts');
+    const contacts = api.root.addResource(environment.apiRootResource);
 
     const createContactIntegration = new apigateway.LambdaIntegration(createContact);
     contacts.addMethod('POST', createContactIntegration);
     addCorsOptions(contacts);
+
+    const certificate = certificatemanager.Certificate.fromCertificateArn(this, 'Certificate', environment.certificateARN);
+    const apiDomainName = api.addDomainName('contactApiDomain', { domainName: `${environment.subdomainName}.${environment.domainName}`, certificate: certificate });
+    
+    const zone = route53.HostedZone.fromLookup(this, 'MyZone', { domainName: environment.hostedZoneName });
+    
+    new route53.CnameRecord(this, 'CNAME', {domainName: apiDomainName.domainNameAliasDomainName, zone: zone, recordName: environment.subdomainName});
 
     const createSlackMessage = new lambda.Function(this, 'createSlackMessage', {
       code: new lambda.AssetCode('src'),
